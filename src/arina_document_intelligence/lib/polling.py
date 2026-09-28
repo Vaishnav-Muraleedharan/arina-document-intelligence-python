@@ -53,14 +53,18 @@ class RunFailedError(RuntimeError):
         super().__init__(f"run {run.id!r} ended {run.status}" + (f" ({detail})" if detail else ""))
 
 
-def _validate(timeout: float, interval: float, max_interval: float) -> None:
-    """Reject settings that would hot-spin or give up before the first real poll."""
+def _validate(timeout: float, interval: float, max_interval: float) -> float:
+    """Reject settings that would hot-spin or give up before the first real poll.
+
+    Returns the effective ``max_interval``: never below ``interval``, so asking for a slow
+    fixed cadence (``interval=10`` with the default ``max_interval=5``) simply disables
+    backoff instead of being an error.
+    """
     if not timeout > 0:
         raise ValueError(f"timeout must be > 0 seconds, got {timeout!r}")
     if not interval > 0:
         raise ValueError(f"interval must be > 0 seconds, got {interval!r}")
-    if max_interval < interval:
-        raise ValueError(f"max_interval ({max_interval!r}) must be >= interval ({interval!r})")
+    return max(max_interval, interval)
 
 
 def _check_terminal(run: RunT, *, raise_on_failure: bool) -> RunT | None:
@@ -81,7 +85,7 @@ def _poll(
     max_interval: float,
     raise_on_failure: bool,
 ) -> RunT:
-    _validate(timeout, interval, max_interval)
+    max_interval = _validate(timeout, interval, max_interval)
     deadline = time.monotonic() + timeout
     delay = interval
     while True:
@@ -104,7 +108,7 @@ async def _poll_async(
     max_interval: float,
     raise_on_failure: bool,
 ) -> RunT:
-    _validate(timeout, interval, max_interval)
+    max_interval = _validate(timeout, interval, max_interval)
     deadline = time.monotonic() + timeout
     delay = interval
     while True:

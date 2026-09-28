@@ -104,7 +104,6 @@ async def test_async_helper_polls_until_processed(make_async_client):
         ({"timeout": 0}, "timeout must be > 0"),
         ({"timeout": -1}, "timeout must be > 0"),
         ({"interval": 0}, "interval must be > 0"),
-        ({"interval": 1.0, "max_interval": 0.5}, "max_interval (0.5) must be >= interval (1.0)"),
     ],
 )
 def test_rejects_settings_that_would_spin_or_never_poll(make_client, kwargs, message):
@@ -120,3 +119,11 @@ async def test_async_helper_rejects_invalid_settings_too(make_async_client):
     with pytest.raises(ValueError, match="interval must be > 0"):
         await wait_for_extract_run_async(client, "run_1", interval=0)
     assert rec.requests == []
+
+
+def test_interval_above_max_interval_disables_backoff_instead_of_failing(make_client):
+    # A caller asking for a slow fixed cadence must not be punished for leaving max_interval
+    # at its default (5s): the effective cap is raised to the interval.
+    client, rec = make_client(scripted("extract_run", "PROCESSING", "PROCESSED"))
+    run = wait_for_extract_run(client, "run_1", timeout=5, interval=0.002, max_interval=0.001)
+    assert run.status == "PROCESSED" and len(rec.requests) == 2
