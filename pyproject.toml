@@ -33,8 +33,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://arina.ai"
-Repository = "https://github.com/OWNER/arina-document-intelligence-python"
-Changelog = "https://github.com/OWNER/arina-document-intelligence-python/blob/main/CHANGELOG.md"
+Repository = "https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python"
+Changelog = "https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 aiohttp = ["aiohttp", "httpx_aiohttp>=0.1.9"]
