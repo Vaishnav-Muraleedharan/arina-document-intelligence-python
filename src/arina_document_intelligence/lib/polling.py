@@ -53,6 +53,16 @@ class RunFailedError(RuntimeError):
         super().__init__(f"run {run.id!r} ended {run.status}" + (f" ({detail})" if detail else ""))
 
 
+def _validate(timeout: float, interval: float, max_interval: float) -> None:
+    """Reject settings that would hot-spin or give up before the first real poll."""
+    if not timeout > 0:
+        raise ValueError(f"timeout must be > 0 seconds, got {timeout!r}")
+    if not interval > 0:
+        raise ValueError(f"interval must be > 0 seconds, got {interval!r}")
+    if max_interval < interval:
+        raise ValueError(f"max_interval ({max_interval!r}) must be >= interval ({interval!r})")
+
+
 def _check_terminal(run: RunT, *, raise_on_failure: bool) -> RunT | None:
     """Return the run if terminal (raising on failure when asked), else ``None``."""
     status = getattr(run, "status", None)
@@ -71,6 +81,7 @@ def _poll(
     max_interval: float,
     raise_on_failure: bool,
 ) -> RunT:
+    _validate(timeout, interval, max_interval)
     deadline = time.monotonic() + timeout
     delay = interval
     while True:
@@ -93,6 +104,7 @@ async def _poll_async(
     max_interval: float,
     raise_on_failure: bool,
 ) -> RunT:
+    _validate(timeout, interval, max_interval)
     deadline = time.monotonic() + timeout
     delay = interval
     while True:
