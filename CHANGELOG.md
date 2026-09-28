@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/compare/v0.1.1...v0.1.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* allow a polling interval above max_interval instead of raising ([#5](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/issues/5)) ([07acb6d](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/commit/07acb6d74ebd4f3e3002b679ada404ffc2f0a0de))
+
 ## [0.1.1](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/compare/v0.1.0...v0.1.1) (2026-09-28)
 
 
