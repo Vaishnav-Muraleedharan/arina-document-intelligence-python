@@ -72,14 +72,34 @@ Conventional Commits on `main`:
 | `feat!:` or `BREAKING CHANGE:` footer | minor | major |
 | `chore:`, `docs:`, `ci:`, `test:` | no release | no release |
 
-Merging the release PR tags `vX.Y.Z`, publishes a GitHub Release with the changelog
-section, and triggers `publish.yml`, which builds once and uploads to PyPI with
-[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) — no tokens stored.
+Merging the release PR makes the next `release-please.yml` run tag `vX.Y.Z`, publish a
+GitHub Release with the changelog section, and — in the same run — call `publish.yml`,
+which builds the tag once and uploads it with
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/). No tokens stored, no
+manual step. The whole thing, end to end:
+
+```
+PR "fix: …" merged ─► release-please opens "chore(main): release 0.1.1"
+                            │ you merge it
+                            ▼
+                     release-please tags v0.1.1 + GitHub Release
+                            │ same workflow run, `release_created == true`
+                            ▼
+                     publish.yml (reusable) ─► build ─► TestPyPI or PyPI
+```
+
+`publish.yml` is *called* from the release workflow rather than triggered by the release
+event on purpose: GitHub never starts workflows for events created with the workflow's
+own `GITHUB_TOKEN`, and that is what release-please creates the release with. A release
+created by a human in the GitHub UI does trigger it, so that path also works.
 
 **Bootstrapping the first release.** The manifest starts at `0.1.0`, matching
 `pyproject.toml`, so there is nothing for release-please to bump yet. Publish `0.1.0` by
 hand once: create tag `v0.1.0` and a GitHub Release from it. From then on release-please
 takes over.
+
+**Publishing a version that was tagged but not uploaded** (for example after a failed
+run): Actions → Publish → Run workflow, choose the index and enter the tag as `ref`.
 
 **Trying it before touching PyPI.** Two ways:
 
