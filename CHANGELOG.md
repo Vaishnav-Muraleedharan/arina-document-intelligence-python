@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/compare/v0.1.2...v0.1.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* README citation example no longer crashes when citations is null ([#8](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/issues/8)) ([2f7513a](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/commit/2f7513aea9131789baab8ecb815fdb06c840a3f9))
+
 ## [0.1.2](https://github.com/Vaishnav-Muraleedharan/arina-document-intelligence-python/compare/v0.1.1...v0.1.2) (2026-09-28)
 
 
