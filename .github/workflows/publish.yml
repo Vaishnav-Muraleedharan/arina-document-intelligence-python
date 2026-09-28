@@ -2,7 +2,9 @@
 #
 # Triggers:
 #   - a GitHub Release is published (release-please does this when its PR is merged)
-#       -> publishes to PyPI
+#       -> publishes to PyPI, unless the repository variable RELEASE_INDEX is "testpypi"
+#          (Settings -> Secrets and variables -> Actions -> Variables). Set that while
+#          rehearsing the release loop; delete it (or set "pypi") to go live.
 #   - manual run (Actions tab -> Publish -> Run workflow)
 #       -> publishes to TestPyPI by default, or PyPI if you pick it
 #
@@ -67,7 +69,9 @@ jobs:
           if-no-files-found: error
 
   publish-testpypi:
-    if: github.event_name == 'workflow_dispatch' && inputs.index == 'testpypi'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.index == 'testpypi') ||
+      (github.event_name == 'release' && vars.RELEASE_INDEX == 'testpypi')
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -85,7 +89,9 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   publish-pypi:
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.index == 'pypi')
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.index == 'pypi') ||
+      (github.event_name == 'release' && vars.RELEASE_INDEX != 'testpypi')
     needs: build
     runs-on: ubuntu-latest
     environment:
