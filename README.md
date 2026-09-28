@@ -84,7 +84,11 @@ from arina_document_intelligence.lib import wait_for_extract_run
 run = wait_for_extract_run(client, run.id, timeout=120)
 
 total = run.output.value["invoiceTotal"]
-for citation in run.output.metadata["invoiceTotal"].citations:
+
+# `citations` is a list when the value was located, [] when it was found but not
+# located, and None when citations were disabled — so guard before iterating.
+field = run.output.metadata["invoiceTotal"]
+for citation in field.citations or []:
     print(citation.page.number, citation.polygon, citation.reference_text)
 
 # The page image the polygons were measured against:
