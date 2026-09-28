@@ -18,8 +18,8 @@ openapi.public.json  ──► Scalar ──► generated code replaced ──�
                                                                     release-please PR
                                                                           │ merge
                                                                     tag vX.Y.Z + GitHub Release
-                                                                          │
-                                                                    publish.yml ──► PyPI (OIDC)
+                                                                          │ same run
+                                                                    release.yml build ──► (Test)PyPI (OIDC)
 ```
 
 Two independent cadences: the **API deploys** whenever the bot repo's pipeline runs; the
@@ -72,41 +72,48 @@ Conventional Commits on `main`:
 | `feat!:` or `BREAKING CHANGE:` footer | minor | major |
 | `chore:`, `docs:`, `ci:`, `test:` | no release | no release |
 
-Merging the release PR makes the next `release-please.yml` run tag `vX.Y.Z`, publish a
-GitHub Release with the changelog section, and — in the same run — call `publish.yml`,
-which builds the tag once and uploads it with
+Everything lives in one workflow, `.github/workflows/release.yml`. Merging the release PR
+makes its next run tag `vX.Y.Z`, publish a GitHub Release with the changelog section, and
+— in the same run — build that tag once and upload it with
 [Trusted Publishing](https://docs.pypi.org/trusted-publishers/). No tokens stored, no
-manual step. The whole thing, end to end:
+manual step. End to end:
 
 ```
-PR "fix: …" merged ─► release-please opens "chore(main): release 0.1.1"
+PR "fix: …" merged ─► release.yml: release-please opens "chore(main): release 0.1.1"
                             │ you merge it
                             ▼
-                     release-please tags v0.1.1 + GitHub Release
-                            │ same workflow run, `release_created == true`
+                      release.yml: release-please tags v0.1.1 + GitHub Release
+                            │ same run, `release_created == true`
                             ▼
-                     publish.yml (reusable) ─► build ─► TestPyPI or PyPI
+                      build ─► publish-testpypi  or  publish-pypi
 ```
 
-`publish.yml` is *called* from the release workflow rather than triggered by the release
-event on purpose: GitHub never starts workflows for events created with the workflow's
-own `GITHUB_TOKEN`, and that is what release-please creates the release with. A release
-created by a human in the GitHub UI does trigger it, so that path also works.
+Why one file, and not a separate publish workflow: two platform rules force it.
+
+- GitHub never starts a workflow for an event created with a workflow's own
+  `GITHUB_TOKEN` — and that is the token release-please uses to create the GitHub
+  Release. So `on: release` in another file would never fire.
+- PyPI identifies a Trusted Publisher by workflow filename and
+  [refuses reusable (called) workflows](https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github).
+  So the publish steps cannot live in a workflow that release.yml calls.
+
+**Which index.** Automatic publishes are fail-safe: they go to **TestPyPI unless the
+repository variable `RELEASE_INDEX` is exactly `pypi`** (Settings → Secrets and variables
+→ Actions → Variables). A missing or mistyped variable can never reach the real index —
+which matters, because a real upload is irreversible (the version is burned and, from a
+personal account, the project name is claimed). Set `RELEASE_INDEX=pypi` once, from the
+organisation's repository, to go live. The run summary states the version, tag and index
+before anything is uploaded.
+
+**Manual publish** (Actions → Release → Run workflow): pick the index and, optionally, a
+tag as `ref`. Use it to bootstrap the first version, or to upload a version that was
+tagged but failed to publish. Without `ref` it builds the default branch and skips the
+tag check.
 
 **Bootstrapping the first release.** The manifest starts at `0.1.0`, matching
 `pyproject.toml`, so there is nothing for release-please to bump yet. Publish `0.1.0` by
-hand once: create tag `v0.1.0` and a GitHub Release from it. From then on release-please
-takes over.
-
-**Publishing a version that was tagged but not uploaded** (for example after a failed
-run): Actions → Publish → Run workflow, choose the index and enter the tag as `ref`.
-
-**Trying it before touching PyPI.** Two ways:
-
-- One-off: Actions → Publish → Run workflow → `testpypi`.
-- The whole automatic loop: set the repository variable `RELEASE_INDEX=testpypi`
-  (Settings → Secrets and variables → Actions → Variables). Release-triggered publishes
-  then go to TestPyPI instead of PyPI. Delete the variable to go live.
+hand once with the manual run, then tag it: `git tag v0.1.0 && git push origin v0.1.0`.
+From then on release-please takes over.
 
 Install from TestPyPI with
 `pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple arina-document-intelligence`.
@@ -115,14 +122,20 @@ which is exactly what a `fix:` merge produces.
 
 ### One-time setup (per GitHub repo, per index)
 
-1. On [TestPyPI](https://test.pypi.org) and [PyPI](https://pypi.org): Account → Publishing →
-   *Add a new pending publisher*: project `arina-document-intelligence`, owner `<GitHub
-   owner>`, repository `arina-document-intelligence-python`, workflow `publish.yml`,
-   environment `testpypi` / `pypi`.
+1. On [TestPyPI](https://test.pypi.org) and [PyPI](https://pypi.org), add a GitHub
+   publisher — under *Account → Publishing → Add a new pending publisher* before the
+   project exists, or *Project → Manage → Publishing* once it does: project
+   `arina-document-intelligence`, owner `<GitHub owner>`, repository
+   `arina-document-intelligence-python`, **workflow `release.yml`**, environment
+   `testpypi` on TestPyPI / `pypi` on PyPI. The workflow filename must be the file that
+   contains the publish step; a stale entry for another filename yields
+   `invalid-publisher`.
 2. In GitHub: Settings → Environments → create `testpypi` and `pypi`. Add a required
    reviewer on `pypi` if you want a human approval before every publish.
 3. Settings → Actions → General → Workflow permissions: *Read and write*, and allow
    GitHub Actions to create pull requests (release-please needs both).
+4. Optional while rehearsing: no variable needed — TestPyPI is the default. When going
+   live: repository variable `RELEASE_INDEX` = `pypi`.
 
 ## Local development
 
