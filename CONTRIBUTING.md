@@ -81,17 +81,8 @@ section, and triggers `publish.yml`, which builds once and uploads to PyPI with
 hand once: create tag `v0.1.0` and a GitHub Release from it. From then on release-please
 takes over.
 
-**Trying it before touching PyPI.** Two ways:
-
-- One-off: Actions → Publish → Run workflow → `testpypi`.
-- The whole automatic loop: set the repository variable `RELEASE_INDEX=testpypi`
-  (Settings → Secrets and variables → Actions → Variables). Release-triggered publishes
-  then go to TestPyPI instead of PyPI. Delete the variable to go live.
-
-Install from TestPyPI with
-`pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple arina-document-intelligence`.
-An index never accepts the same version twice, so each rehearsal needs a new version —
-which is exactly what a `fix:` merge produces.
+**Trying it before touching PyPI.** Actions → Publish → Run workflow → `testpypi`. Then
+`pip install -i https://test.pypi.org/simple/ arina-document-intelligence`.
 
 ### One-time setup (per GitHub repo, per index)
 
