@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from itertools import chain, repeat
 
 import httpx
@@ -95,3 +96,27 @@ async def test_async_helper_polls_until_processed(make_async_client):
     client, rec = make_async_client(scripted("extract_run", "PROCESSING", "PROCESSED"))
     run = await wait_for_extract_run_async(client, "run_1", timeout=5, **FAST)
     assert run.status == "PROCESSED" and len(rec.requests) == 2
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"timeout": 0}, "timeout must be > 0"),
+        ({"timeout": -1}, "timeout must be > 0"),
+        ({"interval": 0}, "interval must be > 0"),
+        ({"interval": 1.0, "max_interval": 0.5}, "max_interval (0.5) must be >= interval (1.0)"),
+    ],
+)
+def test_rejects_settings_that_would_spin_or_never_poll(make_client, kwargs, message):
+    client, rec = make_client(scripted("extract_run", "PROCESSING"))
+    with pytest.raises(ValueError, match=re.escape(message)):
+        wait_for_extract_run(client, "run_1", **kwargs)
+    assert rec.requests == [], "invalid settings are rejected before any request is made"
+
+
+@pytest.mark.asyncio
+async def test_async_helper_rejects_invalid_settings_too(make_async_client):
+    client, rec = make_async_client(scripted("extract_run", "PROCESSING"))
+    with pytest.raises(ValueError, match="interval must be > 0"):
+        await wait_for_extract_run_async(client, "run_1", interval=0)
+    assert rec.requests == []
